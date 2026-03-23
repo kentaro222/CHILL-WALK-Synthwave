@@ -138,9 +138,14 @@
     }
 
     function resize() {
-        // ★ ピクセルパーフェクト調整: 整数倍のみでスケールする
-        let scale = Math.floor(Math.min(window.innerWidth / INTERNAL_W, window.innerHeight / INTERNAL_H));
-        if (scale < 1) scale = 1; // 最小でも等倍を保証
+        // 画面サイズと内部解像度の比率を計算
+        let scale = Math.min(window.innerWidth / INTERNAL_W, window.innerHeight / INTERNAL_H);
+        
+        // 画面が十分に大きい場合は、ピクセルパーフェクトを維持するために整数倍にする
+        // 画面が小さい場合（スマホ縦持ちなど scale < 1）は、そのままの比率で縮小を許可する
+        if (scale >= 1) {
+            scale = Math.floor(scale);
+        }
 
         canvas.width = INTERNAL_W; 
         canvas.height = INTERNAL_H;
