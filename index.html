@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CHILL WALK - Synthwave</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020010">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        body { 
+            margin: 0; background: #020010; 
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; width: 100vw;
+            color: #fff; font-family: 'Courier New', monospace; 
+            overflow: hidden; touch-action: none;
+        }
+        #game-wrapper {
+            position: relative;
+            /* 整数倍スケーリングを中央配置するため */
+            display: flex; justify-content: center; align-items: center;
+        }
+        canvas { 
+            display: block; 
+            image-rendering: pixelated; /* ピクセルをくっきり表示 */
+            image-rendering: crisp-edges;
+            border: 1px solid #1a1a1a;
+            box-shadow: 0 0 40px rgba(255, 0, 255, 0.1);
+        }
+
+        #clock-display {
+            position: absolute;
+            top: 25%; right: 10%;
+            font-size: clamp(40px, 8vw, 80px);
+            font-weight: bold; color: #fff;
+            text-shadow: 0 0 15px #ff00ff, 0 0 30px #00ffff;
+            pointer-events: none; letter-spacing: 4px;
+            z-index: 100; text-align: right;
+        }
+
+        #wakelock-container {
+            position: absolute;
+            bottom: 30px; right: 40px;
+            display: flex; align-items: center; gap: 12px;
+            padding: 8px 16px; background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #ff00ff; border-radius: 4px;
+            cursor: pointer; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+            transition: 0.3s; z-index: 200;
+        }
+        #wakelock-container:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
+            background: rgba(255, 0, 255, 0.1);
+        }
+        #wakelock-status-light {
+            width: 10px; height: 10px; border-radius: 50%;
+            background-color: #ff3333; box-shadow: 0 0 8px #ff3333;
+        }
+        #wakelock-container.active #wakelock-status-light {
+            background-color: #33ff33; box-shadow: 0 0 10px #33ff33;
+        }
+        #wakelock-text {
+            font-size: 14px; color: #fff; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="clock-display">00:00:00</div>
+        <div id="wakelock-container">
+            <div id="wakelock-status-light"></div>
+            <div id="wakelock-text">Wake Lock: <span id="status-label">OFF</span></div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+<script>
+    // --- Service Worker 登録 (PWA) ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW registered!', reg))
+                .catch(err => console.error('SW registration failed', err));
+        });
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const clockDisplay = document.getElementById('clock-display');
+    const wlContainer = document.getElementById('wakelock-container');
+    const wlStatusLabel = document.getElementById('status-label');
+    
+    const INTERNAL_W = 640; 
+    const INTERNAL_H = 360;
+    const GROUND_Y = 280;
+    const PLAYER_SIZE = 48;
+
+    let frame = 0;
+    let hueOffset = 280; 
+    let scrollX = 0;
+
+    const spriteSheet = new Image();
+    spriteSheet.src = 'player_1bit00_sheet.png'; 
+    let imageLoaded = false;
+    spriteSheet.onload = () => { imageLoaded = true; };
+
+    // --- Wake Lock ---
+    let wakeLock = null;
+    if ('wakeLock' in navigator) {
+        wlContainer.addEventListener('click', async () => {
+            if (wakeLock) {
+                await wakeLock.release();
+                wakeLock = null;
+                updateWLUI(false);
+            } else {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    updateWLUI(true);
+                    wakeLock.addEventListener('release', () => {
+                        wakeLock = null;
+                        updateWLUI(false);
+                    });
+                } catch (err) { console.error(err); }
+            }
+        });
+    } else {
+        wlContainer.style.opacity = "0.3";
+        wlStatusLabel.innerText = "N/A";
+    }
+
+    function updateWLUI(active) {
+        if (active) {
+            wlContainer.classList.add('active');
+            wlStatusLabel.innerText = "ON";
+        } else {
+            wlContainer.classList.remove('active');
+            wlStatusLabel.innerText = "OFF";
+        }
+    }
+
+    function resize() {
+        // ★ ピクセルパーフェクト調整: 整数倍のみでスケールする
+        let scale = Math.floor(Math.min(window.innerWidth / INTERNAL_W, window.innerHeight / INTERNAL_H));
+        if (scale < 1) scale = 1; // 最小でも等倍を保証
+
+        canvas.width = INTERNAL_W; 
+        canvas.height = INTERNAL_H;
+        canvas.style.width = (INTERNAL_W * scale) + "px";
+        canvas.style.height = (INTERNAL_H * scale) + "px";
+        ctx.imageSmoothingEnabled = false;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function draw() {
+        frame++;
+        scrollX += 1.2;
+        hueOffset = (hueOffset + 0.05) % 360;
+
+        const now = new Date();
+        clockDisplay.innerText = now.toTimeString().split(' ')[0];
+
+        ctx.clearRect(0, 0, INTERNAL_W, INTERNAL_H);
+
+        const cycleTime = Date.now() / 120000;
+        const lightnessBase = (Math.sin(cycleTime * Math.PI * 2) + 1) / 2;
+        const darkL = 15; const brightL = 70;
+        const l = darkL + (brightL - darkL) * lightnessBase;
+        const s = 70 + (25 * lightnessBase);
+
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+        skyGrad.addColorStop(0, `hsl(${(hueOffset + 180) % 360}, ${s}%, ${l * 0.8}%)`);
+        skyGrad.addColorStop(1, `hsl(${(hueOffset + 30) % 360}, ${s}%, ${l}%)`);
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, INTERNAL_W, GROUND_Y);
+
+        ctx.fillStyle = `hsl(${(hueOffset + 20) % 360}, 50%, 8%)`;
+        for (let i = 0; i < 4; i++) {
+            let mx = ((scrollX * 0.3) + i * 300) % (INTERNAL_W + 300) - 150;
+            ctx.beginPath();
+            ctx.moveTo(mx, GROUND_Y);
+            ctx.lineTo(mx + 150, GROUND_Y - 70);
+            ctx.lineTo(mx + 300, GROUND_Y);
+            ctx.fill();
+        }
+
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, GROUND_Y, INTERNAL_W, INTERNAL_H - GROUND_Y);
+        
+        ctx.strokeStyle = `hsl(${hueOffset}, 100%, 50%)`;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 10; i++) {
+            let y = GROUND_Y + Math.pow(i / 10, 2) * (INTERNAL_H - GROUND_Y);
+            ctx.globalAlpha = i / 10;
+            ctx.beginPath();
+            ctx.moveTo(0, y); ctx.lineTo(INTERNAL_W, y);
+            ctx.stroke();
+        }
+        let gridSpeed = (scrollX * 2.5) % 60;
+        for (let x = -100; x < INTERNAL_W + 100; x += 60) {
+            let curX = x - gridSpeed;
+            ctx.globalAlpha = 0.2;
+            ctx.beginPath();
+            ctx.moveTo(INTERNAL_W / 2 + (curX - INTERNAL_W / 2) * 0.2, GROUND_Y);
+            ctx.lineTo(curX, INTERNAL_H);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+
+        if (imageLoaded) {
+            let sx = (Math.floor(frame / 8) % 2 ? 16 : 0);
+            let bounce = Math.sin(frame * 0.1) * 2;
+            ctx.save();
+            // 座標をMath.floorで丸めることで、サブピクセルレンダリングによるにじみを防止
+            ctx.translate(Math.floor(100 + PLAYER_SIZE), Math.floor(GROUND_Y - PLAYER_SIZE + bounce));
+            ctx.scale(-1, 1);
+            ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.restore();
+        }
+
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+</body>
+</html>
