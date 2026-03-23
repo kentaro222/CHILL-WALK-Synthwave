@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHILL WALK - Synthwave Dawn & Dusk</title>
+    <title>CHILL WALK - Synthwave</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#020010">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -215,13 +215,18 @@
 
         if (imageLoaded) {
             let sx = (Math.floor(frame / 8) % 2 ? 16 : 0);
-            let bounce = Math.sin(frame * 0.1) * 2;
+            
+            // 上下の揺れ（bounce）を削除し、
+            // 地平線(GROUND_Y)より少し手前（下）に配置するためのオフセットを追加
+            let yOffset = 15; // この数値を大きくするとさらに手前（下）にきます
+            
             ctx.save();
-            ctx.translate(Math.floor(100 + PLAYER_SIZE), Math.floor(GROUND_Y - PLAYER_SIZE + bounce));
-            ctx.scale(-1, 1);
+            ctx.translate(Math.floor(100 + PLAYER_SIZE), Math.floor(GROUND_Y - PLAYER_SIZE + yOffset));
+            ctx.scale(-1, 1); // 右向きに
             ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
             ctx.restore();
         }
+
 
         requestAnimationFrame(draw);
     }
