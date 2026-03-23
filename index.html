@@ -140,23 +140,17 @@
     }
 
     function resize() {
-        // スマホ縦持ちに対応しつつ、ピクセルパーフェクトを維持
+        // 画面サイズに合わせた倍率を計算（整数に固定しない）
         let scale = Math.min(window.innerWidth / INTERNAL_W, window.innerHeight / INTERNAL_H);
-        
-        // 画面が十分に大きい場合は、整数倍スケーリング
-        if (scale >= 1) {
-            scale = Math.floor(scale);
-        }
-        // scale < 1 の場合は、そのまま縮小を許可 (image-rendering: pixelatedの効果でスマホでは綺麗に見える)
 
         canvas.width = INTERNAL_W; 
         canvas.height = INTERNAL_H;
         canvas.style.width = (INTERNAL_W * scale) + "px";
         canvas.style.height = (INTERNAL_H * scale) + "px";
+        
+        // ピクセル感を出す設定は維持（これがないとボヤけます）
         ctx.imageSmoothingEnabled = false;
     }
-    window.addEventListener('resize', resize);
-    resize();
 
     function draw() {
         frame++;
@@ -213,16 +207,17 @@
         }
         ctx.globalAlpha = 1.0;
 
+       // 4. キャラクター
         if (imageLoaded) {
             let sx = (Math.floor(frame / 8) % 2 ? 16 : 0);
             
-            // 上下の揺れ（bounce）を削除し、
-            // 地平線(GROUND_Y)より少し手前（下）に配置するためのオフセットを追加
-            let yOffset = 15; // この数値を大きくするとさらに手前（下）にきます
+            // 揺れ（bounce）を削除し、少し手前（下）へ
+            let yOffset = 15; 
             
             ctx.save();
+            // 座標を固定（Math.floorで描画位置のにじみを最小限に抑える）
             ctx.translate(Math.floor(100 + PLAYER_SIZE), Math.floor(GROUND_Y - PLAYER_SIZE + yOffset));
-            ctx.scale(-1, 1); // 右向きに
+            ctx.scale(-1, 1);
             ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
             ctx.restore();
         }
