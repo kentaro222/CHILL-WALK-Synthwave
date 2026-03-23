@@ -152,6 +152,9 @@
         ctx.imageSmoothingEnabled = false;
     }
 
+    window.addEventListener('resize', resize);
+    resize();
+    
     function draw() {
         frame++;
         scrollX += 1.2;
