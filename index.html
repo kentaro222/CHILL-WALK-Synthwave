@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHILL WALK - Synthwave</title>
+    <title>CHILL WALK - Synthwave Dawn & Dusk</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#020010">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -17,7 +17,6 @@
         }
         #game-wrapper {
             position: relative;
-            /* 整数倍スケーリングを中央配置するため */
             display: flex; justify-content: center; align-items: center;
         }
         canvas { 
@@ -28,6 +27,7 @@
             box-shadow: 0 0 40px rgba(255, 0, 255, 0.1);
         }
 
+        /* 時計の配置: 右側、中央より少し上 */
         #clock-display {
             position: absolute;
             top: 25%; right: 10%;
@@ -38,12 +38,16 @@
             z-index: 100; text-align: right;
         }
 
+        /* ★ 消灯防止ボタンをインジケーターのみに変更 */
         #wakelock-container {
             position: absolute;
-            bottom: 30px; right: 40px;
-            display: flex; align-items: center; gap: 12px;
-            padding: 8px 16px; background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #ff00ff; border-radius: 4px;
+            bottom: 20px; right: 20px; /* 位置を少し端に寄せる */
+            display: flex; align-items: center; 
+            gap: 0; /* 文字がなくなるためgapは不要 */
+            padding: 8px; /* 円形に見せるため、paddingを均等に */
+            background: rgba(0, 0, 0, 0.7);
+            border: none; /* 枠線を削除 */
+            border-radius: 50%; /* 円形にする */
             cursor: pointer; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
             transition: 0.3s; z-index: 200;
         }
@@ -52,15 +56,14 @@
             background: rgba(255, 0, 255, 0.1);
         }
         #wakelock-status-light {
-            width: 10px; height: 10px; border-radius: 50%;
+            width: 8px; height: 8px; /* 光を少し大きく、円形を際立たせる */
+            border-radius: 50%;
             background-color: #ff3333; box-shadow: 0 0 8px #ff3333;
         }
         #wakelock-container.active #wakelock-status-light {
             background-color: #33ff33; box-shadow: 0 0 10px #33ff33;
         }
-        #wakelock-text {
-            font-size: 14px; color: #fff; text-transform: uppercase;
-        }
+        /* ★ 文字要素はHTMLから削除します */
     </style>
 </head>
 <body>
@@ -68,8 +71,7 @@
         <div id="clock-display">00:00:00</div>
         <div id="wakelock-container">
             <div id="wakelock-status-light"></div>
-            <div id="wakelock-text">Wake Lock: <span id="status-label">OFF</span></div>
-        </div>
+            </div>
         <canvas id="gameCanvas"></canvas>
     </div>
 
@@ -87,7 +89,7 @@
     const ctx = canvas.getContext('2d');
     const clockDisplay = document.getElementById('clock-display');
     const wlContainer = document.getElementById('wakelock-container');
-    const wlStatusLabel = document.getElementById('status-label');
+    // ★ wlStatusLabel は削除
     
     const INTERNAL_W = 640; 
     const INTERNAL_H = 360;
@@ -124,28 +126,28 @@
         });
     } else {
         wlContainer.style.opacity = "0.3";
-        wlStatusLabel.innerText = "N/A";
+        // ★ wlStatusLabel の更新ロジックは削除
     }
 
     function updateWLUI(active) {
         if (active) {
             wlContainer.classList.add('active');
-            wlStatusLabel.innerText = "ON";
+            // ★ 文字要素を削除したため、ここでの更新は不要
         } else {
             wlContainer.classList.remove('active');
-            wlStatusLabel.innerText = "OFF";
+            // ★ 文字要素を削除したため、ここでの更新は不要
         }
     }
 
     function resize() {
-        // 画面サイズと内部解像度の比率を計算
+        // スマホ縦持ちに対応しつつ、ピクセルパーフェクトを維持
         let scale = Math.min(window.innerWidth / INTERNAL_W, window.innerHeight / INTERNAL_H);
         
-        // 画面が十分に大きい場合は、ピクセルパーフェクトを維持するために整数倍にする
-        // 画面が小さい場合（スマホ縦持ちなど scale < 1）は、そのままの比率で縮小を許可する
+        // 画面が十分に大きい場合は、整数倍スケーリング
         if (scale >= 1) {
             scale = Math.floor(scale);
         }
+        // scale < 1 の場合は、そのまま縮小を許可 (image-rendering: pixelatedの効果でスマホでは綺麗に見える)
 
         canvas.width = INTERNAL_W; 
         canvas.height = INTERNAL_H;
@@ -215,7 +217,6 @@
             let sx = (Math.floor(frame / 8) % 2 ? 16 : 0);
             let bounce = Math.sin(frame * 0.1) * 2;
             ctx.save();
-            // 座標をMath.floorで丸めることで、サブピクセルレンダリングによるにじみを防止
             ctx.translate(Math.floor(100 + PLAYER_SIZE), Math.floor(GROUND_Y - PLAYER_SIZE + bounce));
             ctx.scale(-1, 1);
             ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
