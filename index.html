@@ -96,6 +96,21 @@
     const GROUND_Y = 280;
     const PLAYER_SIZE = 48;
 
+    // ★ 星の設定を追加 (低解像度に合わせて少なめに)
+    let stars = [];
+    for(let i = 0; i < 30; i++) {
+        stars.push({
+            x: Math.random() * INTERNAL_W,
+            y: Math.random() * GROUND_Y,
+            size: 1, // ピクセル
+            speed: Math.random() * 0.1 + 0.05 // ゆっくり移動
+        });
+    }
+
+    // ★ 太陽の設定を追加
+    const SUN_SIZE = 180; // 太陽の直径
+    const SUN_Y = GROUND_Y - 30; // 太陽の中心Y座標 (地平線の少し上)
+
     let frame = 0;
     let hueOffset = 280; 
     let scrollX = 0;
@@ -171,12 +186,61 @@
         const l = darkL + (brightL - darkL) * lightnessBase;
         const s = 70 + (25 * lightnessBase);
 
+        // --- 1. 空 (グラデーション) ---
         const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
         skyGrad.addColorStop(0, `hsl(${(hueOffset + 180) % 360}, ${s}%, ${l * 0.8}%)`);
         skyGrad.addColorStop(1, `hsl(${(hueOffset + 30) % 360}, ${s}%, ${l}%)`);
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, INTERNAL_W, GROUND_Y);
 
+        // --- ★ 新規追加: 星 ---
+        ctx.fillStyle = "white"; // 星の色
+        stars.forEach(star => {
+            star.x -= star.speed; // 移動
+            if (star.x < -star.size) { // 画面左端に出たら右端へ
+                star.x = INTERNAL_W;
+                star.y = Math.random() * GROUND_Y;
+            }
+            // ピクセルパーフェクトにするために座標を整数化
+            ctx.fillRect(Math.floor(star.x), Math.floor(star.y), star.size, star.size);
+        });
+
+        // --- ★ 2. 太陽 (変更) ---
+        // 太陽本体 (グラデーション)
+        const sunGrad = ctx.createLinearGradient(0, SUN_Y - SUN_SIZE / 2, 0, SUN_Y + SUN_SIZE / 2);
+        sunGrad.addColorStop(0, `hsl(${(hueOffset + 60) % 360}, 100%, 80%)`); 
+        sunGrad.addColorStop(1, `hsl(${(hueOffset + 10) % 360}, 100%, 50%)`); 
+        
+        // 参考コードを参考に、ネオンブラーを追加
+        ctx.fillStyle = sunGrad;
+        ctx.shadowColor = `hsl(${(hueOffset + 30) % 360}, 100%, 70%)`; // 空に近い色でブラー
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(INTERNAL_W / 2, SUN_Y, SUN_SIZE / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0; // ブラーを解除
+
+        // --- ★ 新規追加: 太陽のボーダー (スキャンラインの代わりに) ---
+        // 背景グラデーション（空）と同じ色で縞模様を描画
+        ctx.fillStyle = skyGrad;
+
+        // 縞模様の数と間隔 (低解像度に合わせて調整)
+        const borderCount = 4;
+        const baseBorderY = GROUND_Y; // 地平線から上に描画
+        const borderSpacing = 15; // 間隔
+
+        for (let i = 0; i < borderCount; i++) {
+            // 地平線から上のY座標
+            let borderY = baseBorderY - (i * borderSpacing);
+            // ボーダーの太さ (下に行くほど太くなる)
+            let borderHeight = 3 + i * 1.5;
+
+            // 円の上に矩形を描画して縞模様を作る
+            // 太陽の直径よりも広く描画
+            ctx.fillRect(INTERNAL_W / 2 - SUN_SIZE / 2 - 20, borderY, SUN_SIZE + 40, borderHeight);
+        }
+
+        // --- 3. 山 (太陽の手前に描画) ---
         ctx.fillStyle = `hsl(${(hueOffset + 20) % 360}, 50%, 8%)`;
         for (let i = 0; i < 4; i++) {
             // ループ幅を変数に定義し、マイナス方向へスクロールしても正しくループするよう計算式を変更
@@ -190,9 +254,11 @@
             ctx.fill();
         }
 
+        // --- 4. 地面 ---
         ctx.fillStyle = "#000";
         ctx.fillRect(0, GROUND_Y, INTERNAL_W, INTERNAL_H - GROUND_Y);
         
+        // --- 5. 地面のグリッド ---
         ctx.strokeStyle = `hsl(${hueOffset}, 100%, 50%)`;
         ctx.lineWidth = 1;
         for (let i = 0; i < 10; i++) {
@@ -213,7 +279,7 @@
         }
         ctx.globalAlpha = 1.0;
 
-       // 4. キャラクター
+       // 6. キャラクター
         if (imageLoaded) {
             let sx = (Math.floor(frame / 12) % 2 ? 16 : 0);
             
