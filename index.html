@@ -179,7 +179,10 @@
 
         ctx.fillStyle = `hsl(${(hueOffset + 20) % 360}, 50%, 8%)`;
         for (let i = 0; i < 4; i++) {
-            let mx = ((scrollX * 0.3) + i * 300) % (INTERNAL_W + 300) - 150;
+            // ループ幅を変数に定義し、マイナス方向へスクロールしても正しくループするよう計算式を変更
+            let loopWidth = INTERNAL_W + 300;
+            let mx = ((i * 300 - scrollX * 0.3) % loopWidth + loopWidth) % loopWidth - 150;
+            
             ctx.beginPath();
             ctx.moveTo(mx, GROUND_Y);
             ctx.lineTo(mx + 150, GROUND_Y - 70);
