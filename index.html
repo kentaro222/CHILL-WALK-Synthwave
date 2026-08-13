@@ -2,77 +2,127 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHILL WALK - Synthwave</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#020010">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     <style>
-        body { 
-            margin: 0; background: #020010; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; width: 100vw;
-            color: #fff; font-family: 'Courier New', monospace; 
-            overflow: hidden; touch-action: none;
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #020010;
         }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
         #game-wrapper {
             position: relative;
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        canvas { 
-            display: block; 
-            image-rendering: pixelated; /* ピクセルをくっきり表示 */
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
             image-rendering: crisp-edges;
             border: 1px solid #1a1a1a;
             box-shadow: 0 0 40px rgba(255, 0, 255, 0.1);
         }
 
-        /* 時計の配置: 右側、中央より少し上 */
         #clock-display {
             position: absolute;
-            top: 25%; right: 10%;
+            top: 25%;
+            right: 10%;
             font-size: clamp(40px, 8vw, 80px);
-            font-weight: bold; color: #fff;
+            font-weight: bold;
+            color: #fff;
             text-shadow: 0 0 15px #ff00ff, 0 0 30px #00ffff;
-            pointer-events: none; letter-spacing: 4px;
-            z-index: 100; text-align: right;
+            pointer-events: none;
+            letter-spacing: 4px;
+            z-index: 100;
+            text-align: right;
         }
 
-        /* ★ 消灯防止ボタンをインジケーターのみに変更 */
         #wakelock-container {
             position: absolute;
-            bottom: 20px; right: 20px; /* 位置を少し端に寄せる */
-            display: flex; align-items: center; 
-            gap: 0; /* 文字がなくなるためgapは不要 */
-            padding: 8px; /* 円形に見せるため、paddingを均等に */
+            bottom: max(20px, env(safe-area-inset-bottom));
+            right: max(20px, env(safe-area-inset-right));
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background: rgba(0, 0, 0, 0.7);
-            border: none; /* 枠線を削除 */
-            border-radius: 50%; /* 円形にする */
-            cursor: pointer; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
-            transition: 0.3s; z-index: 200;
+            border: 0;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+            transition: box-shadow 0.3s, background 0.3s, opacity 0.3s;
+            z-index: 200;
+            -webkit-tap-highlight-color: transparent;
         }
-        #wakelock-container:hover {
+
+        #wakelock-container:hover,
+        #wakelock-container:focus-visible {
             box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
             background: rgba(255, 0, 255, 0.1);
+            outline: 2px solid rgba(255, 255, 255, 0.8);
+            outline-offset: 2px;
         }
+
+        #wakelock-container:disabled {
+            cursor: default;
+            opacity: 0.3;
+        }
+
         #wakelock-status-light {
-            width: 8px; height: 8px; /* 光を少し大きく、円形を際立たせる */
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background-color: #ff3333; box-shadow: 0 0 8px #ff3333;
+            background-color: #ff3333;
+            box-shadow: 0 0 8px #ff3333;
         }
+
         #wakelock-container.active #wakelock-status-light {
-            background-color: #33ff33; box-shadow: 0 0 10px #33ff33;
+            background-color: #33ff33;
+            box-shadow: 0 0 10px #33ff33;
         }
-        /* ★ 文字要素はHTMLから削除します */
+
+        @media (prefers-reduced-motion: reduce) {
+            #wakelock-container {
+                transition: none;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="game-wrapper">
-        <div id="clock-display">00:00:00</div>
-        <div id="wakelock-container">
-            <div id="wakelock-status-light"></div>
-            </div>
-        <canvas id="gameCanvas"></canvas>
+        <div id="clock-display" aria-live="off">00:00:00</div>
+        <button
+            id="wakelock-container"
+            type="button"
+            aria-label="画面の自動消灯を防止"
+            aria-pressed="false"
+            title="画面の自動消灯を防止"
+        >
+            <span id="wakelock-status-light" aria-hidden="true"></span>
+        </button>
+        <canvas id="gameCanvas" width="640" height="360" aria-label="Synthwave walking scene"></canvas>
     </div>
 
 <script>
@@ -89,215 +139,295 @@
     const ctx = canvas.getContext('2d');
     const clockDisplay = document.getElementById('clock-display');
     const wlContainer = document.getElementById('wakelock-container');
-    // ★ wlStatusLabel は削除
-    
-    const INTERNAL_W = 640; 
+
+    const INTERNAL_W = 640;
     const INTERNAL_H = 360;
     const GROUND_Y = 280;
     const PLAYER_SIZE = 48;
+    const TARGET_FPS = 60;
+    const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
-    // ★ 星の設定を追加 (低解像度に合わせて少なめに)
-    let stars = [];
-    for(let i = 0; i < 30; i++) {
-        stars.push({
-            x: Math.random() * INTERNAL_W,
-            y: Math.random() * GROUND_Y,
-            size: 1, // ピクセル
-            speed: Math.random() * 0.1 + 0.05 // ゆっくり移動
-        });
-    }
+    const stars = Array.from({ length: 30 }, () => ({
+        x: Math.random() * INTERNAL_W,
+        y: Math.random() * GROUND_Y,
+        size: 1,
+        speed: Math.random() * 6 + 3 // px / sec
+    }));
 
-    // ★ 太陽の設定を追加
-    const SUN_SIZE = 180; // 太陽の直径
-    const SUN_Y = GROUND_Y - 30; // 太陽の中心Y座標 (地平線の少し上)
+    const SUN_SIZE = 180;
+    const SUN_Y = GROUND_Y - 30;
 
-    let frame = 0;
-    let hueOffset = 280; 
+    let hueOffset = 280;
     let scrollX = 0;
+    let lastRenderTime = performance.now();
+    let animationTime = 0;
+    let lastClockSecond = -1;
 
     const spriteSheet = new Image();
-    spriteSheet.src = 'player_1bit00_sheet.png'; 
+    spriteSheet.src = './player_1bit00_sheet.png';
     let imageLoaded = false;
     spriteSheet.onload = () => { imageLoaded = true; };
+    spriteSheet.onerror = (err) => console.error('Sprite load failed', err);
 
     // --- Wake Lock ---
     let wakeLock = null;
-    if ('wakeLock' in navigator) {
-        wlContainer.addEventListener('click', async () => {
-            if (wakeLock) {
-                await wakeLock.release();
-                wakeLock = null;
-                updateWLUI(false);
-            } else {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    updateWLUI(true);
-                    wakeLock.addEventListener('release', () => {
-                        wakeLock = null;
-                        updateWLUI(false);
-                    });
-                } catch (err) { console.error(err); }
-            }
-        });
-    } else {
-        wlContainer.style.opacity = "0.3";
-        // ★ wlStatusLabel の更新ロジックは削除
-    }
+    let wakeLockWanted = false;
 
     function updateWLUI(active) {
-        if (active) {
-            wlContainer.classList.add('active');
-            // ★ 文字要素を削除したため、ここでの更新は不要
-        } else {
-            wlContainer.classList.remove('active');
-            // ★ 文字要素を削除したため、ここでの更新は不要
+        wlContainer.classList.toggle('active', active);
+        wlContainer.setAttribute('aria-pressed', String(wakeLockWanted));
+        wlContainer.title = wakeLockWanted
+            ? (active ? '画面の自動消灯防止: ON' : '画面の自動消灯防止: 再取得待ち')
+            : '画面の自動消灯防止: OFF';
+    }
+
+    async function acquireWakeLock() {
+        if (!wakeLockWanted || wakeLock || document.visibilityState !== 'visible') return;
+
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            updateWLUI(true);
+
+            wakeLock.addEventListener('release', () => {
+                wakeLock = null;
+                updateWLUI(false);
+            });
+        } catch (err) {
+            wakeLock = null;
+            updateWLUI(false);
+            console.error('Wake Lock request failed', err);
         }
     }
 
-    function resize() {
-        // 画面サイズに合わせた倍率を計算（整数に固定しない）
-        let scale = Math.min(window.innerWidth / INTERNAL_W, window.innerHeight / INTERNAL_H);
+    if ('wakeLock' in navigator) {
+        wlContainer.addEventListener('click', async () => {
+            wakeLockWanted = !wakeLockWanted;
 
-        canvas.width = INTERNAL_W; 
+            if (wakeLockWanted) {
+                await acquireWakeLock();
+            } else {
+                const currentLock = wakeLock;
+                wakeLock = null;
+                updateWLUI(false);
+                if (currentLock) {
+                    try {
+                        await currentLock.release();
+                    } catch (err) {
+                        console.error('Wake Lock release failed', err);
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && wakeLockWanted) {
+                acquireWakeLock();
+            }
+        });
+    } else {
+        wlContainer.disabled = true;
+        wlContainer.setAttribute('aria-label', 'このブラウザは画面の自動消灯防止に対応していません');
+        wlContainer.title = 'Wake Lock API 非対応';
+    }
+
+    function resize() {
+        const rawScale = Math.min(
+            window.innerWidth / INTERNAL_W,
+            window.innerHeight / INTERNAL_H
+        );
+
+        // 1倍以上では整数倍率を優先。小画面では収まるよう縮小する。
+        const scale = rawScale >= 1 ? Math.max(1, Math.floor(rawScale)) : rawScale;
+
+        canvas.width = INTERNAL_W;
         canvas.height = INTERNAL_H;
-        canvas.style.width = (INTERNAL_W * scale) + "px";
-        canvas.style.height = (INTERNAL_H * scale) + "px";
-        
-        // ピクセル感を出す設定は維持（これがないとボヤけます）
+        canvas.style.width = `${INTERNAL_W * scale}px`;
+        canvas.style.height = `${INTERNAL_H * scale}px`;
         ctx.imageSmoothingEnabled = false;
     }
 
     window.addEventListener('resize', resize);
     resize();
-    
-    function draw() {
-        frame++;
-        scrollX += 1.2;
-        hueOffset = (hueOffset + 0.05) % 360;
 
-        const now = new Date();
-        clockDisplay.innerText = now.toTimeString().split(' ')[0];
+    function updateClock(now) {
+        const second = now.getSeconds();
+        if (second === lastClockSecond) return;
 
-        ctx.clearRect(0, 0, INTERNAL_W, INTERNAL_H);
+        lastClockSecond = second;
+        clockDisplay.textContent = now.toTimeString().slice(0, 8);
+    }
 
-        const cycleTime = Date.now() / 120000;
-        const lightnessBase = (Math.sin(cycleTime * Math.PI * 2) + 1) / 2;
-        const darkL = 15; const brightL = 70;
+    function drawSky(lightnessBase) {
+        const darkL = 15;
+        const brightL = 70;
         const l = darkL + (brightL - darkL) * lightnessBase;
-        const s = 70 + (25 * lightnessBase);
+        const s = 70 + 25 * lightnessBase;
 
-        // --- 1. 空 (グラデーション) ---
         const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
         skyGrad.addColorStop(0, `hsl(${(hueOffset + 180) % 360}, ${s}%, ${l * 0.8}%)`);
         skyGrad.addColorStop(1, `hsl(${(hueOffset + 30) % 360}, ${s}%, ${l}%)`);
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, INTERNAL_W, GROUND_Y);
 
-        // --- ★ 新規追加: 星 ---
-        ctx.fillStyle = "white"; // 星の色
+        return skyGrad;
+    }
+
+    function drawStars(dt, lightnessBase) {
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 1 - lightnessBase * 0.8;
+
         stars.forEach(star => {
-            star.x -= star.speed; // 移動
-            if (star.x < -star.size) { // 画面左端に出たら右端へ
+            star.x -= star.speed * dt;
+            if (star.x < -star.size) {
                 star.x = INTERNAL_W;
                 star.y = Math.random() * GROUND_Y;
             }
-            // ピクセルパーフェクトにするために座標を整数化
             ctx.fillRect(Math.floor(star.x), Math.floor(star.y), star.size, star.size);
         });
 
-        // --- ★ 2. 太陽 (変更) ---
-        // 太陽本体 (グラデーション)
-        const sunGrad = ctx.createLinearGradient(0, SUN_Y - SUN_SIZE / 2, 0, SUN_Y + SUN_SIZE / 2);
-        sunGrad.addColorStop(0, `hsl(${(hueOffset + 60) % 360}, 100%, 80%)`); 
-        sunGrad.addColorStop(1, `hsl(${(hueOffset + 10) % 360}, 100%, 50%)`); 
-        
-        // 参考コードを参考に、ネオンブラーを追加
+        ctx.restore();
+    }
+
+    function drawSun(skyGrad) {
+        const sunGrad = ctx.createLinearGradient(
+            0,
+            SUN_Y - SUN_SIZE / 2,
+            0,
+            SUN_Y + SUN_SIZE / 2
+        );
+        sunGrad.addColorStop(0, `hsl(${(hueOffset + 60) % 360}, 100%, 80%)`);
+        sunGrad.addColorStop(1, `hsl(${(hueOffset + 10) % 360}, 100%, 50%)`);
+
+        ctx.save();
         ctx.fillStyle = sunGrad;
-        ctx.shadowColor = `hsl(${(hueOffset + 30) % 360}, 100%, 70%)`; // 空に近い色でブラー
+        ctx.shadowColor = `hsl(${(hueOffset + 30) % 360}, 100%, 70%)`;
         ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(INTERNAL_W / 2, SUN_Y, SUN_SIZE / 2, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0; // ブラーを解除
+        ctx.restore();
 
-        // --- ★ 新規追加: 太陽のボーダー (スキャンラインの代わりに) ---
-        // 背景グラデーション（空）と同じ色で縞模様を描画
+        // 太陽の円内だけを空色で削り、Synthwave風の横縞を作る。
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(INTERNAL_W / 2, SUN_Y, SUN_SIZE / 2, 0, Math.PI * 2);
+        ctx.clip();
         ctx.fillStyle = skyGrad;
 
-        // 縞模様の数と間隔 (低解像度に合わせて調整)
         const borderCount = 4;
-        const baseBorderY = GROUND_Y; // 地平線から上に描画
-        const borderSpacing = 15; // 間隔
+        const borderSpacing = 15;
+        const firstBorderY = GROUND_Y - 8;
 
         for (let i = 0; i < borderCount; i++) {
-            // 地平線から上のY座標
-            let borderY = baseBorderY - (i * borderSpacing);
-            // ボーダーの太さ (下に行くほど太くなる)
-            let borderHeight = 3 + i * 1.5;
-
-            // 円の上に矩形を描画して縞模様を作る
-            // 太陽の直径よりも広く描画
-            ctx.fillRect(INTERNAL_W / 2 - SUN_SIZE / 2 - 20, borderY, SUN_SIZE + 40, borderHeight);
+            const borderY = firstBorderY - i * borderSpacing;
+            const borderHeight = 7 - i; // 下側ほど太い
+            ctx.fillRect(
+                INTERNAL_W / 2 - SUN_SIZE / 2,
+                borderY,
+                SUN_SIZE,
+                borderHeight
+            );
         }
+        ctx.restore();
+    }
 
-        // --- 3. 山 (太陽の手前に描画) ---
+    function drawMountains() {
         ctx.fillStyle = `hsl(${(hueOffset + 20) % 360}, 50%, 8%)`;
-        for (let i = 0; i < 4; i++) {
-            // ループ幅を変数に定義し、マイナス方向へスクロールしても正しくループするよう計算式を変更
-            let loopWidth = INTERNAL_W + 300;
-            let mx = ((i * 300 - scrollX * 0.3) % loopWidth + loopWidth) % loopWidth - 150;
-            
-            ctx.beginPath();
-            ctx.moveTo(mx, GROUND_Y);
-            ctx.lineTo(mx + 150, GROUND_Y - 70);
-            ctx.lineTo(mx + 300, GROUND_Y);
-            ctx.fill();
-        }
 
-        // --- 4. 地面 ---
-        ctx.fillStyle = "#000";
+        const mountainWidth = 300;
+        const mountainCount = 6;
+        const loopWidth = mountainWidth * mountainCount;
+
+        for (let i = 0; i < mountainCount; i++) {
+            const baseX = i * mountainWidth - 150;
+            const mx = ((baseX - scrollX * 0.3 + 150) % loopWidth + loopWidth) % loopWidth - 150;
+
+            // 現在位置と1周期前も描いて継ぎ目を隠す。
+            for (const x of [mx, mx - loopWidth]) {
+                ctx.beginPath();
+                ctx.moveTo(x, GROUND_Y);
+                ctx.lineTo(x + mountainWidth / 2, GROUND_Y - 70);
+                ctx.lineTo(x + mountainWidth, GROUND_Y);
+                ctx.fill();
+            }
+        }
+    }
+
+    function drawGroundAndGrid() {
+        ctx.fillStyle = '#000';
         ctx.fillRect(0, GROUND_Y, INTERNAL_W, INTERNAL_H - GROUND_Y);
-        
-        // --- 5. 地面のグリッド ---
+
         ctx.strokeStyle = `hsl(${hueOffset}, 100%, 50%)`;
         ctx.lineWidth = 1;
-        for (let i = 0; i < 10; i++) {
-            let y = GROUND_Y + Math.pow(i / 10, 2) * (INTERNAL_H - GROUND_Y);
+
+        for (let i = 1; i <= 10; i++) {
+            const y = GROUND_Y + Math.pow(i / 10, 2) * (INTERNAL_H - GROUND_Y);
             ctx.globalAlpha = i / 10;
             ctx.beginPath();
-            ctx.moveTo(0, y); ctx.lineTo(INTERNAL_W, y);
+            ctx.moveTo(0, y);
+            ctx.lineTo(INTERNAL_W, y);
             ctx.stroke();
         }
-        let gridSpeed = (scrollX * 2.5) % 60;
+
+        const gridSpeed = (scrollX * 2.5) % 60;
         for (let x = -100; x < INTERNAL_W + 100; x += 60) {
-            let curX = x - gridSpeed;
+            const curX = x - gridSpeed;
             ctx.globalAlpha = 0.2;
             ctx.beginPath();
             ctx.moveTo(INTERNAL_W / 2 + (curX - INTERNAL_W / 2) * 0.2, GROUND_Y);
             ctx.lineTo(curX, INTERNAL_H);
             ctx.stroke();
         }
-        ctx.globalAlpha = 1.0;
 
-       // 6. キャラクター
-        if (imageLoaded) {
-            let sx = (Math.floor(frame / 12) % 2 ? 16 : 0);
-            
-            // 揺れ（bounce）を削除し、少し手前（下）へ
-            let yOffset = 15; 
-            
-            ctx.save();
-            // 座標を固定（Math.floorで描画位置のにじみを最小限に抑える）
-            ctx.translate(Math.floor(100 + PLAYER_SIZE), Math.floor(GROUND_Y - PLAYER_SIZE + yOffset));
-            ctx.scale(-1, 1);
-            ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
-            ctx.restore();
-        }
-
-
-        requestAnimationFrame(draw);
+        ctx.globalAlpha = 1;
     }
-    draw();
+
+    function drawPlayer() {
+        if (!imageLoaded) return;
+
+        const sx = Math.floor(animationTime / 0.2) % 2 ? 16 : 0;
+        const playerGroundOverlap = 15;
+
+        ctx.save();
+        ctx.translate(
+            Math.floor(100 + PLAYER_SIZE),
+            Math.floor(GROUND_Y - PLAYER_SIZE + playerGroundOverlap)
+        );
+        ctx.scale(-1, 1);
+        ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
+        ctx.restore();
+    }
+
+    function draw(time) {
+        requestAnimationFrame(draw);
+
+        const elapsed = time - lastRenderTime;
+        if (elapsed < FRAME_INTERVAL) return;
+
+        const dt = Math.min(elapsed / 1000, 0.05);
+        lastRenderTime = time - (elapsed % FRAME_INTERVAL);
+        animationTime += dt;
+
+        scrollX += 72 * dt;
+        hueOffset = (hueOffset + 3 * dt) % 360;
+
+        updateClock(new Date());
+        ctx.clearRect(0, 0, INTERNAL_W, INTERNAL_H);
+
+        // 10分で1周期。急激に色が変わらないようゆっくり遷移する。
+        const cycleTime = Date.now() / 600000;
+        const lightnessBase = (Math.sin(cycleTime * Math.PI * 2) + 1) / 2;
+
+        const skyGrad = drawSky(lightnessBase);
+        drawStars(dt, lightnessBase);
+        drawSun(skyGrad);
+        drawMountains();
+        drawGroundAndGrid();
+        drawPlayer();
+    }
+
+    requestAnimationFrame(draw);
 </script>
 </body>
 </html>
