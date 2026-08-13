@@ -389,11 +389,10 @@
     // ゆったりした歩行アニメーション
     const sx = Math.floor(animationTime / 0.24) % 2 ? 16 : 0;
 
-    // animationTime は秒単位
-    // 左右にゆっくり蛇行
+    // 左右にゆっくり大きめに移動
     const zigzagX = Math.sin(animationTime * 0.45) * 90;
 
-    // 前後方向のゆったりした動き
+    // 前後方向の動き
     const depthWave = Math.sin(animationTime * 0.28);
 
     // 基準位置
@@ -401,24 +400,19 @@
     const playerGroundOverlap = 15;
     const baseY = GROUND_Y - PLAYER_SIZE + playerGroundOverlap;
 
-    // 奥へ行くと上、手前へ来ると下
-    const depthY = depthWave * 22;
+    // 奥へ行くと少し上、手前に来ると少し下
+    const depthY = depthWave * 18;
 
     const playerX = baseX + zigzagX;
     const playerY = baseY + depthY;
 
-    // 奥では少し小さく、手前では少し大きく
-    // 約 90% ～ 105%
-    const depth = (depthWave + 1) / 2;
-    const playerScale = 0.82 + depth * 0.28;
-
-    const drawSize = PLAYER_SIZE * playerScale;
-
     ctx.save();
 
+    // PLAYER_SIZE は常に48px固定
+    // 16x16 → 48x48 の3倍整数拡大を維持
     ctx.translate(
-        Math.floor(playerX + drawSize),
-        Math.floor(playerY + (PLAYER_SIZE - drawSize))
+        Math.floor(playerX + PLAYER_SIZE),
+        Math.floor(playerY)
     );
 
     ctx.scale(-1, 1);
@@ -427,8 +421,7 @@
         spriteSheet,
         sx, 0, 16, 16,
         0, 0,
-        Math.floor(drawSize),
-        Math.floor(drawSize)
+        PLAYER_SIZE, PLAYER_SIZE
     );
 
     ctx.restore();
