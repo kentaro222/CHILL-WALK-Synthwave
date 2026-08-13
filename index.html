@@ -384,20 +384,55 @@
     }
 
     function drawPlayer() {
-        if (!imageLoaded) return;
+    if (!imageLoaded) return;
 
-        const sx = Math.floor(animationTime / 0.2) % 2 ? 16 : 0;
-        const playerGroundOverlap = 15;
+    // ゆったりした歩行アニメーション
+    const sx = Math.floor(animationTime / 0.24) % 2 ? 16 : 0;
 
-        ctx.save();
-        ctx.translate(
-            Math.floor(100 + PLAYER_SIZE),
-            Math.floor(GROUND_Y - PLAYER_SIZE + playerGroundOverlap)
-        );
-        ctx.scale(-1, 1);
-        ctx.drawImage(spriteSheet, sx, 0, 16, 16, 0, 0, PLAYER_SIZE, PLAYER_SIZE);
-        ctx.restore();
-    }
+    // animationTime は秒単位
+    // 左右にゆっくり蛇行
+    const zigzagX = Math.sin(animationTime * 0.38) * 45;
+
+    // 前後方向のゆったりした動き
+    const depthWave = Math.sin(animationTime * 0.24);
+
+    // 基準位置
+    const baseX = 100;
+    const playerGroundOverlap = 15;
+    const baseY = GROUND_Y - PLAYER_SIZE + playerGroundOverlap;
+
+    // 奥へ行くと上、手前へ来ると下
+    const depthY = depthWave * 12;
+
+    const playerX = baseX + zigzagX;
+    const playerY = baseY + depthY;
+
+    // 奥では少し小さく、手前では少し大きく
+    // 約 90% ～ 105%
+    const depth = (depthWave + 1) / 2;
+    const playerScale = 0.90 + depth * 0.15;
+
+    const drawSize = PLAYER_SIZE * playerScale;
+
+    ctx.save();
+
+    ctx.translate(
+        Math.floor(playerX + drawSize),
+        Math.floor(playerY + (PLAYER_SIZE - drawSize))
+    );
+
+    ctx.scale(-1, 1);
+
+    ctx.drawImage(
+        spriteSheet,
+        sx, 0, 16, 16,
+        0, 0,
+        Math.floor(drawSize),
+        Math.floor(drawSize)
+    );
+
+    ctx.restore();
+}
 
     function draw(time) {
         requestAnimationFrame(draw);
