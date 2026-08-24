@@ -84,48 +84,26 @@
            ========================= */
 
         #clock-display {
-            position: absolute;
+    position: absolute;
 
-            /*
-             * 左上へ配置。
-             * iPhone等のSafe Areaにも対応。
-             */
-            top:
-                max(
-                    18px,
-                    env(safe-area-inset-top)
-                );
+    top: 6px;
+    right: 12px;
 
-            left:
-                max(
-                    22px,
-                    env(safe-area-inset-left)
-                );
+    font-size: clamp(28px, 5vw, 56px);
+    font-weight: bold;
+    color: #fff;
 
-            font-size:
-                clamp(
-                    30px,
-                    6vw,
-                    64px
-                );
+    text-shadow:
+        0 0 15px #ff00ff,
+        0 0 30px #00ffff;
 
-            font-weight: bold;
+    pointer-events: none;
+    letter-spacing: 4px;
 
-            color: #fff;
+    z-index: 100;
 
-            text-shadow:
-                0 0 15px #ff00ff,
-                0 0 30px #00ffff;
-
-            pointer-events: none;
-
-            letter-spacing: 4px;
-
-            z-index: 100;
-
-            text-align: left;
-
-            white-space: nowrap;
+    text-align: right;
+    white-space: nowrap;
         }
 
 
