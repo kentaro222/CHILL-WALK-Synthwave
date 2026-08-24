@@ -389,27 +389,12 @@
     // ゆったりした歩行アニメーション
     const sx = Math.floor(animationTime / 0.24) % 2 ? 16 : 0;
 
-    // 左右にゆっくり大きめに移動
-    const zigzagX = Math.sin(animationTime * 0.45) * 90;
-
-    // 前後方向の動き
-    const depthWave = Math.sin(animationTime * 0.28);
-
-    // 基準位置
-    const baseX = 100;
     const playerGroundOverlap = 15;
-    const baseY = GROUND_Y - PLAYER_SIZE + playerGroundOverlap;
-
-    // 奥へ行くと少し上、手前に来ると少し下
-    const depthY = depthWave * 18;
-
-    const playerX = baseX + zigzagX;
-    const playerY = baseY + depthY;
+    const playerX = 100;
+    const playerY = GROUND_Y - PLAYER_SIZE + playerGroundOverlap;
 
     ctx.save();
 
-    // PLAYER_SIZE は常に48px固定
-    // 16x16 → 48x48 の3倍整数拡大を維持
     ctx.translate(
         Math.floor(playerX + PLAYER_SIZE),
         Math.floor(playerY)
