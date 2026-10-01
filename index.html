@@ -121,69 +121,32 @@
 
         #wakelock-container {
             position: absolute;
-
-            bottom:
-                max(
-                    20px,
-                    env(safe-area-inset-bottom)
-                );
-
-            right:
-                max(
-                    20px,
-                    env(safe-area-inset-right)
-                );
-
-            width: 28px;
-            height: 28px;
-
+            bottom: max(8px, env(safe-area-inset-bottom));
+            right: max(20px, env(safe-area-inset-right));
+            width: 22px;
+            height: 22px;
             padding: 0;
-
             display: flex;
             align-items: center;
             justify-content: center;
-
-            background:
-                rgba(0, 0, 0, 0.7);
-
-            border: 0;
-
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 50%;
-
             cursor: pointer;
-
-            box-shadow:
-                0 0 10px
-                rgba(255, 0, 255, 0.3);
-
-            transition:
-                box-shadow 0.3s,
-                background 0.3s,
-                opacity 0.3s;
-
+            box-shadow: none;
+            transition: background 0.3s, opacity 0.3s;
             z-index: 200;
-
-            -webkit-tap-highlight-color:
-                transparent;
+            -webkit-tap-highlight-color: transparent;
         }
 
         @media (hover: hover) and (pointer: fine) {
-
             #wakelock-container:hover {
-                box-shadow:
-                    0 0 20px
-                    rgba(255, 0, 255, 0.6);
-
-                background:
-                    rgba(255, 0, 255, 0.1);
+                background: rgba(255, 255, 255, 0.08);
             }
         }
 
         #wakelock-container:focus-visible {
-            outline:
-                2px solid
-                rgba(255, 255, 255, 0.8);
-
+            outline: 2px solid rgba(255, 255, 255, 0.8);
             outline-offset: 2px;
         }
 
@@ -193,26 +156,15 @@
         }
 
         #wakelock-status-light {
-            width: 6px;
-            height: 6px;
-
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
-
-            background-color: #ff3333;
-
-            box-shadow:
-                0 0 8px
-                #ff3333;
+            background-color: #9b5555;
+            box-shadow: none;
         }
 
-        #wakelock-container.active
-        #wakelock-status-light {
-
-            background-color: #33ff33;
-
-            box-shadow:
-                0 0 10px
-                #33ff33;
+        #wakelock-container.active #wakelock-status-light {
+            background-color: #6b9b75;
         }
 
 
@@ -1489,11 +1441,11 @@
          * 48x48 → 等倍表示を維持。
          */
         const playerGroundOverlap =
-            50;
+            26;
 
 
         const playerX =
-            100;
+            76;
 
 
         const playerY =
