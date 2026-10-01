@@ -325,10 +325,11 @@
     const GROUND_Y = 280;
 
     /*
-     * 元画像16x16を
-     * 3倍整数拡大。
+     * 元画像64x64を
+     * 等倍表示。
      */
-    const PLAYER_SIZE = 48;
+    const SPRITE_FRAME_SIZE = 64;
+    const PLAYER_SIZE = 64;
 
 
     /*
@@ -409,7 +410,7 @@
         new Image();
 
     spriteSheet.src =
-        "./player_1bit00_sheet.png";
+        "./whiteman.png";
 
     let imageLoaded = false;
 
@@ -1458,15 +1459,15 @@
             )
             % 2
 
-                ? 16
+                ? SPRITE_FRAME_SIZE
 
                 : 0;
 
 
         /*
-         * 48x48固定。
+         * 64x64固定。
          *
-         * 16x16 → 3倍整数拡大を維持。
+         * 64x64 → 等倍表示を維持。
          */
         const playerGroundOverlap =
             15;
@@ -1488,7 +1489,7 @@
 
 
         /*
-         * 左右反転。
+         * 左向きの元画像を左右反転し、右向きに歩かせる。
          */
         ctx.translate(
 
@@ -1520,8 +1521,8 @@
              */
             sx,
             0,
-            16,
-            16,
+            SPRITE_FRAME_SIZE,
+            SPRITE_FRAME_SIZE,
 
             /*
              * 描画
