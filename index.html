@@ -331,6 +331,9 @@
     const SPRITE_FRAME_SIZE = 64;
     const PLAYER_SIZE = 64;
 
+    const WALK_FRAME_INTERVAL = 0.7;
+    const SCROLL_STEP = 12;
+
 
     /*
      * 120Hzスマホ等でも
@@ -1455,7 +1458,7 @@
         const sx =
             Math.floor(
                 animationTime
-                / 0.7
+                / WALK_FRAME_INTERVAL
             )
             % 2
 
@@ -1591,20 +1594,24 @@
             );
 
 
-        animationTime +=
-            dt;
-
-
-
         /*
-         * 背景移動速度。
-         *
-         * フレーム数ではなく
-         * 秒ベース。
+         * 歩行コマが切り替わる瞬間だけ背景を進める。
+         * 0.7秒ごとに12px（平均約17.1px/秒）。
          */
-        scrollX +=
-            72
-            * dt;
+        const previousWalkStep =
+            Math.floor(animationTime / WALK_FRAME_INTERVAL);
+
+        animationTime += dt;
+
+        const currentWalkStep =
+            Math.floor(animationTime / WALK_FRAME_INTERVAL);
+
+        const scrollSteps = currentWalkStep - previousWalkStep;
+
+        scrollX += scrollSteps * SCROLL_STEP;
+
+        /* 星も同じタイミングで移動。各星の速度差は維持。 */
+        const starScrollDt = scrollSteps * WALK_FRAME_INTERVAL;
 
 
         /*
@@ -1685,7 +1692,7 @@
 
 
         drawStars(
-            dt,
+            starScrollDt,
             lightnessBase
         );
 
