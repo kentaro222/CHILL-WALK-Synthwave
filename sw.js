@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chill-walk-v22';
+const CACHE_NAME = 'chill-walk-v23';
 
 const ASSETS_TO_CACHE = [
     './',
