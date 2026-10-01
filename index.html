@@ -334,11 +334,11 @@
     const GROUND_Y = 280;
 
     /*
-     * 元画像64x64を
+     * 元画像48x48を
      * 等倍表示。
      */
-    const SPRITE_FRAME_SIZE = 64;
-    const PLAYER_SIZE = 64;
+    const SPRITE_FRAME_SIZE = 48;
+    const PLAYER_SIZE = 48;
 
     const WALK_FRAME_INTERVAL = 0.7;
     const SCROLL_SPEED = 12 / WALK_FRAME_INTERVAL;
@@ -1484,9 +1484,9 @@
 
 
         /*
-         * 64x64固定。
+         * 48x48固定。
          *
-         * 64x64 → 等倍表示を維持。
+         * 48x48 → 等倍表示を維持。
          */
         const playerGroundOverlap =
             50;
