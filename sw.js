@@ -1,10 +1,10 @@
-const CACHE_NAME = 'chill-walk-v17';
+const CACHE_NAME = 'chill-walk-v18';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
-    './player_1bit00_sheet.png',
+    './whiteman.png',
     './icon-192.png',
     './icon-512.png'
 ];
