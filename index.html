@@ -20,6 +20,14 @@
     >
 
     <style>
+        @font-face {
+            font-family: "Chill Digital";
+            src: url("data:font/woff;base64,d09GRgABAAAAAAREAAoAAAAACLQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABPUy8yAAABZAAAAC4AAABgRQBFE2NtYXAAAAGoAAAANQAAAEQATADFZ2x5ZgAAAfwAAAEyAAAEdIssrzJoZWFkAAAA9AAAADYAAAA2L2840GhoZWEAAAEsAAAAIAAAACQFogKtaG10eAAAAZQAAAAUAAAAIgjAAABsb2NhAAAB4AAAABwAAAAcBYUGi21heHAAAAFMAAAAGAAAACAAFQAsbmFtZQAAAzAAAADKAAABsKc567Nwb3N0AAAD/AAAAEUAAACC6EOkrgABAAAAAQAAXtT8S18PPPUAAQPoAAAAAObjekAAAAAA5uN6QAA8ACMCWANNAAAAAwACAAAAAAAAeJxjYGRgYG75P4eBgWkKAwNDBZMMA1AEBbAAAFsCA1V4nGNgZGBg4GXQYmBnAAEmBjQAAAZ7AEJ4nGNgZiplnMDAysDCQBgwInPsgQBIKTBYMbf8n8PAwNzCkIKmXoGBAQDcNgWZAAB4nGOawsDABMSMLBAaEwAAMUgByHicY2BgYGJgYGAGYhEgyQimWRgMgDQHEILkFBgsGaz+/wezDECs/w//X/5/AqwWDADXTwsLAAAAAAAAAAAAABIAUwBtAKYA4AENAUYBiAGsAfcCOnicjVNNSgMxGH1JHEdwVYYyK8FSpHExIErJpoteQMhSitiNuCwewUt4AZdexAt4kC5cdTGY+SbYL/ZzTGCSl48h773vBxorbPGuX2BQAm5+MzbhW3nvt96rpffAMRaY6jtziwKnGKHGGaZA5SZ1OVFuPivHFe0FRWYssmnUQ9O0b+rV9qt9ihEXA+a8CddPu7N21z7T4UJkQUgt6YDWJ1gHBSNSAM6pr+JD6oO/gfDnoepEc6/WEK4JJ2oTpdcRc7UuhR3jJoeRY5kxvQ1yHgWX+8x0nKiYowuWqUfm46ceMWv7lOfkj+dMcuN+M+V5Gewzzmki5zBzh9VXBrtlGkyo4ZppELr8oKeFFg6zJHm5zJsaoRvF2ZG68q8ZInsZk1z8U9u+nvdZFbZinb8BZrQJ2AAAeJyNjT0KwkAQhb+YqIg/lVpYbSligjmBhVaWFpZCihAXFgPRgCfwCB7E83gKT+CoU6iIOMsO33vzdhZoccLjXh7tR79XhbqoJ/v06SoH9BgpV2kyVa5JYiFJL2iIM2CtXKHDQdlnzFE5kC1n5arsvyjXGHKdbaxzZm4zu0/cMs1KlxQPT61QvTB+Sxq1V2mxs/nWxNHk2ytmbLA4OYa5UCZ3TyJ6SSqqFEp4zb2nwo9cSPxjp/lIr0QV7GSes5VpTMTk379utKVMPQAAeJxjYGLAD3iBmJlBlpGJkZmRhZGVkY2RnZGDkZORi5GbLSUzPbPEAEIZQigjCGUMoUwglCmEMoNQ5hDKAkJZAgBOlxduAAAA") format("woff");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -90,7 +98,8 @@
     right: 12px;
 
     font-size: clamp(28px, 5vw, 56px);
-    font-weight: bold;
+    font-family: "Chill Digital", monospace;
+    font-weight: 400;
     color: #fff;
 
     text-shadow:
@@ -98,7 +107,7 @@
         0 0 30px #00ffff;
 
     pointer-events: none;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
 
     z-index: 100;
 
@@ -125,8 +134,8 @@
                     env(safe-area-inset-right)
                 );
 
-            width: 44px;
-            height: 44px;
+            width: 28px;
+            height: 28px;
 
             padding: 0;
 
@@ -184,8 +193,8 @@
         }
 
         #wakelock-status-light {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
 
             border-radius: 50%;
 
@@ -226,7 +235,7 @@
             id="clock-display"
             aria-live="off"
         >
-            00:00:00
+            00:00
         </div>
 
 
@@ -399,9 +408,27 @@
     let lastRenderTime =
         performance.now();
 
+    /* 実経過時間の計測は、描画間隔調整用の時刻と分ける。 */
+    let lastUpdateTime = lastRenderTime;
+
     let animationTime = 0;
 
-    let lastClockSecond = -1;
+    /* 非表示中は進めず、復帰時から経過時間を計り直す。 */
+    function resetAnimationTiming() {
+        lastUpdateTime = performance.now();
+        lastRenderTime = lastUpdateTime;
+    }
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            resetAnimationTiming();
+            updateClock(new Date());
+        }
+    });
+
+    window.addEventListener("pageshow", resetAnimationTiming);
+
+    let lastClockMinute = -1;
 
 
 
@@ -820,31 +847,14 @@
        ======================================== */
 
     function updateClock(now) {
+        const minute = now.getHours() * 60 + now.getMinutes();
 
-        const second =
-            now.getSeconds();
-
-
-        /*
-         * 秒が変わっていなければ
-         * DOMを書き換えない。
-         */
-        if (
-            second
-            === lastClockSecond
-        ) {
+        if (minute === lastClockMinute) {
             return;
         }
 
-
-        lastClockSecond =
-            second;
-
-
-        clockDisplay.textContent =
-            now
-                .toTimeString()
-                .slice(0, 8);
+        lastClockMinute = minute;
+        clockDisplay.textContent = now.toTimeString().slice(0, 5);
     }
 
 
@@ -1554,6 +1564,10 @@
         );
 
 
+        if (document.visibilityState !== "visible") {
+            return;
+        }
+
         const elapsed =
             time
             -
@@ -1572,18 +1586,11 @@
 
 
         /*
-         * dtは秒。
-         *
-         * アプリ復帰時などに
-         * 一気に動かないよう
-         * 最大50msに制限。
+         * 前回の更新からの実経過時間（秒）。
+         * 描画間隔調整の余りを重複して移動量に加えない。
          */
-        const dt =
-            Math.min(
-                elapsed / 1000,
-                0.05
-            );
-
+        const dt = Math.max(0, (time - lastUpdateTime) / 1000);
+        lastUpdateTime = time;
 
         lastRenderTime =
             time
